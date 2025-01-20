@@ -1,0 +1,14 @@
+==
+a: Please select one response from the following to match the user's previous utterance (0_None, 1_Uh-huh, 2_Yes).
+b: Please choose one emotion that the assistant should express in response to the user's previous utterance (0_Calm, 1_Joy, 2_Moved, 3_Convinced, 4_Thinking, 5_Sleepy, 6_Glaring, 7_Sympathy, 8_Embarrassed, 9_Angry).
+c: Please select one movement that the assistant should display in response to the user's previous utterance (0_Standby, 1_Notice the user's voice, 2_Nod, 3_Tilt head, 4_Thinking, 5_Bow slightly, 6_Bow, 7_Wave one hand, 8_Wave both hands, 9_Look around).
+d: Please output how certain the content of the user's previous utterance is on a scale from 0 (uncertain) to 9 (certain).
+==
+Follow the format below for your output:
+==
+a:0_None
+b:0_Calm
+c:0_Standby
+d:3
+END
+==
