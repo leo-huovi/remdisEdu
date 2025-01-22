@@ -1,5 +1,5 @@
 
-![Color logo with background](https://github.com/remdis/remdis-beta/assets/78123059/e74a1d49-c700-4891-9717-79374cc35c82)
+![remdis-logo](https://github.com/user-attachments/assets/a75b54db-9bc8-4321-a260-859bb07774f3)
 
 # Remdis: Realtime Multimodal Dialogue System Toolkit
 Remdis is a platform for developing multimodal dialogue systems. This repository contains the English version of Remdis.
