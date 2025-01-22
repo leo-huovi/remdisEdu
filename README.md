@@ -101,6 +101,7 @@ For development and execution, we recommend using a Python environment.
   pip3 install torchsummary
   
   # Unzip the model
+  # Note: This model is fine-tuned for Japanese conversation, but since the base model is trained on the Switchboard corpus, it should also work in English.
   cd models/vap
   unzip sw2japanese_public0.zip
   ~~~
