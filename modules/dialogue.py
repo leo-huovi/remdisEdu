@@ -141,36 +141,33 @@ class Dialogue(RemdisModule):
                         self.event_queue.put('ASR_COMMIT')
                     iu_memory = []
 
-    # Manage dialogue state
+    # More stable state mangement for text_vap
     def state_management(self):
         while True:
-            # Transition state based on events
             event = self.event_queue.get()
             prev_state = self.state
-            self.state = RemdisState.transition[self.state][event]
+
+            # When ASR_COMMIT comes in, switch to listening state, but don't respond yet
+            if event == 'ASR_COMMIT' and prev_state == 'idle':
+                self.state = 'listening'  # Use a different state than 'talking'
+                self.processing_response = False  # Not processing a response yet
+
+            # When text_vap determines it's time to respond, now switch to talking and respond
+            elif event == 'SYSTEM_TAKE_TURN' and (prev_state == 'idle' or prev_state == 'listening'):
+                self.state = 'talking'
+                self.processing_response = True
+                self.send_response()  # Now respond to the complete sentence
+
+            # When TTS has finished speaking, go back to idle
+            elif event == 'TTS_COMMIT':
+                self.state = 'idle'
+                self.processing_response = False
+
+            # Handle backchannels in idle state
+            elif event == 'SYSTEM_BACKCHANNEL' and prev_state == 'idle':
+                self.send_backchannel()
+
             self.log(f'********** State: {prev_state} -> {self.state}, Trigger: {event} **********')
-            
-            # Execute actions based on events when the previous state is talking
-            if prev_state == 'talking':
-                if event == 'SYSTEM_BACKCHANNEL':
-                    pass
-                if event == 'USER_BACKCHANNEL':
-                    pass
-                if event == 'USER_TAKE_TURN':
-                    self.stop_response()
-                if event == 'BOTH_TAKE_TURN':
-                    self.stop_response()
-                if event == 'TTS_COMMIT':
-                    self.stop_response()
-                
-            # Execute actions based on events when the previous state is idle
-            elif prev_state == 'idle':
-                if event == 'SYSTEM_BACKCHANNEL':
-                    self.send_backchannel()
-                if event == 'SYSTEM_TAKE_TURN':
-                    self.send_response()
-                if event == 'ASR_COMMIT':
-                    self.send_response()
 
     # Manage expressions and emotions
     def emo_act_management(self):
