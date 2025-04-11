@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MMDAgent-EX Web Interface</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div id="main-container">
+        <div id="connection-status" class="disconnected">Disconnected</div>
+
+        <!-- Avatar display in the middle of screen -->
+        <div id="avatar-container">
+            <div id="emotion-display">😐</div>
+            <div id="avatar-info">
+                <span id="state-text">idle</span>
+                <div id="progress-container">
+                    <div id="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transcription area (limited to 2 rows for each) -->
+        <div id="transcript-container">
+            <div class="transcript-section">
+                <div class="transcript-label">System:</div>
+                <div id="system-transcript" class="transcript-content"></div>
+            </div>
+            <div class="transcript-section">
+                <div class="transcript-label">User:</div>
+                <div id="user-transcript" class="transcript-content"></div>
+            </div>
+        </div>
+
+        <!-- ASR result display -->
+        <div id="asr-display">
+            <div class="asr-label">Currently hearing:</div>
+            <div id="asr-text"></div>
+        </div>
+
+        <!-- Input area for simulated ASR -->
+        <div id="input-area">
+            <input type="text" id="asr-input" placeholder="Type to simulate ASR input...">
+            <div class="input-status">
+                <span id="status-indicator"></span>
+                <span id="typing-status">Idle</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the socket.io library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+    <!-- Include the JavaScript file -->
+    <script src="{{ url_for('static', filename='interface.js') }}"></script>
+</body>
+</html>

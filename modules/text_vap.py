@@ -1,248 +1,280 @@
 import sys
-import json
 import threading
 import queue
 import time
+import json
 import re
 
-import openai
-
-from base import RemdisModule, RemdisUtil, RemdisUpdateType
-from base import MMDAgentEXLabel
+from base import RemdisModule, RemdisUpdateType
 import prompts.util as prompt_util
+from llm import ResponseChatGPT
 
 class TextVAP(RemdisModule):
-    def __init__(self, 
-                 pub_exchanges=['bc', 'vap', 'emo_act'],
+    def __init__(self,
+                 pub_exchanges=['vap', 'emo_act'],
                  sub_exchanges=['asr']):
         super().__init__(pub_exchanges=pub_exchanges,
                          sub_exchanges=sub_exchanges)
 
-        # ChatGPT settings
-        self.client = openai.OpenAI(api_key=self.config['ChatGPT']['api_key'])
-        self.model = self.config['ChatGPT']['text_vap_model']
-        self.max_tokens = self.config['ChatGPT']['max_tokens']
-        self.prompts = prompt_util.load_prompts(self.config['ChatGPT']['prompts'])
-
-        # Text VAP settings
-        self.min_text_vap_threshold = self.config['TEXT_VAP']['mix_text_vap_threshold']
-        self.text_vap_interval = self.config['TEXT_VAP']['text_vap_interval']
-
-        # Variables to limit the number of backchannel transmissions
+        # Load configuration
+        print(self.config)
         self.max_verbal_backchannel_num = self.config['TEXT_VAP']['max_verbal_backchannel_num']
         self.max_nonverbal_backchannel_num = self.config['TEXT_VAP']['max_nonverbal_backchannel_num']
-        self.backchannel_sent_lock = threading.Lock()
-        self.sent_verbal_backchannel_counter = 0
-        self.last_verbal_backchannel_timestamp = -1
-        self.sent_nonverbal_backchannel_counter = 0
-        self.last_nonverbal_backchannel_timestamp = -1
-        
-        # Flag indicating whether user speech is being listened to or not
-        self.is_listening = False
+        self.min_text_vap_threshold = self.config['TEXT_VAP']['min_text_vap_threshold']
+        self.text_vap_interval = self.config['TEXT_VAP']['text_vap_interval']
 
-        # Buffer for IU processing
+        # Timeout settings (from TIME_OUT)
+        self.max_silence_time = self.config['TIME_OUT']['max_silence_time']
+
+        # Load prompts
+        self.prompts = prompt_util.load_prompts(self.config['ChatGPT']['prompts'])
+
+        # Setup buffers and state tracking
         self.input_iu_buffer = queue.Queue()
-        
-        # Utility function for IU processing
-        self.util_func = RemdisUtil()
-        self.spacer = self.config['TEXT_VAP']['spacer']
+        self.output_iu_buffer = queue.Queue()
+        self.llm_buffer = queue.Queue()
 
-    # Main loop
+        # ASR status tracking
+        self.last_asr_timestamp = 0
+        self.accumulated_text = ""
+        self.current_tokens = []
+        self.last_reaction_time = 0
+        self.last_call_time = 0
+        self.current_emotion = "normal"
+        self.current_action = "wait"
+        self.is_timeout_mode = False
+
+        # Timeout thread flag
+        self.active_timeout_thread = None
+        self.timeout_thread_lock = threading.Lock()
+
     def run(self):
+        # Message receiving thread
         t1 = threading.Thread(target=self.listen_asr_loop)
-        t2 = threading.Thread(target=self.parallel_text_vap)
 
+        # Message processing thread
+        t2 = threading.Thread(target=self.process_input_loop)
+
+        # Execute threads
         t1.start()
         t2.start()
 
-    # Register callback for receiving ASR results
+        # Wait for threads to complete
+        t1.join()
+        t2.join()
+
     def listen_asr_loop(self):
         self.subscribe('asr', self.callback_asr)
 
-    # Perform text VAP in parallel for incoming ASR results
-    def parallel_text_vap(self):
-        iu_memory = []
-        new_iu_count = 0
-
+    def process_input_loop(self):
         while True:
-            # Process at the start of user speech
-            if len(iu_memory) == 0:
-                self.is_listening = True
-                self.sent_verbal_backchannel_counter = 0
-                self.sent_nonverbal_backchannel_counter = 0
-                
+            # Get input message
             input_iu = self.input_iu_buffer.get()
-            iu_memory.append(input_iu)
-            
-            # Remove from memory if IU is REVOKE
-            if input_iu['update_type'] == RemdisUpdateType.REVOKE:
-                iu_memory = self.util_func.remove_revoked_ius(iu_memory)
-            # Generate response candidates if ADD/COMMIT
-            else:
-                user_utterance = self.util_func.concat_ius_body(iu_memory, spacer=self.spacer)
-                if user_utterance == '':
-                    continue
 
-                # Check if enough IUs have accumulated above the threshold. If not, wait for next IU or COMMIT
-                if input_iu['update_type'] == RemdisUpdateType.ADD:
-                    new_iu_count += 1
-                    if new_iu_count < self.text_vap_interval:
-                        continue
-                    else:
-                        new_iu_count = 0
+            # Get the update type and timestamp
+            update_type = input_iu['update_type']
+            current_time = input_iu['timestamp']
 
-                # Parallel text VAP processing
-                t = threading.Thread(
-                    target=self.run_text_vap,
-                    args=(input_iu['timestamp'],
-                          user_utterance)
-                )
-                t.start()
+            # Process message based on update type
+            if update_type == RemdisUpdateType.ADD:
+                # Update the accumulated text
+                token = input_iu['body']
+                self.current_tokens.append(token)
+                self.accumulated_text += token + " "
+                self.last_asr_timestamp = current_time
 
-                # Process at the end of user speech
-                if input_iu['update_type'] == RemdisUpdateType.COMMIT:
-                    self.is_listening = False
-                    self.sent_backchannel_counter = 0
-                    iu_memory = []
-    
-    # Parse text VAP determination result
-    def parse_line_for_text_vap(self, line):
-        text_vap_completion = line.strip().split(':')[-1]
-        text_vap_score = int(text_vap_completion) if text_vap_completion.isdigit() else 0
-        return text_vap_score >= self.min_text_vap_threshold
+                # Process for reactions if enough time has passed
+                self.process_for_reactions()
 
-    # Parse backchannel determination result
-    def parse_line_for_backchannel(self, line):
-        backchannel_completion = line.strip().split(':')[-1]
-        backchannel_completion = backchannel_completion.split('_')
-        if len(backchannel_completion) != 2:
-            return 0, ''
-        label, content = backchannel_completion
-        label = int(label) if label.isdigit() else 0
-        return label, content
-    
-    # Parse emotion determination result
-    def parse_line_for_expression(self, line):
-        return self.parse_line_for_backchannel(line)[0]
-    
-    # Parse action determination result
-    def parse_line_for_action(self, message):
-        return self.parse_line_for_backchannel(message)[0]
+                # If there's active input, schedule a timeout check
+                self.schedule_timeout_check()
 
-    # Execute text VAP
-    def run_text_vap(self, asr_timestamp, query):
-        # Prompt input for ChatGPT
-        messages = [
-            {'role': 'user', 'content': self.prompts['BC']},
-            {'role': 'system', 'content': "OK"},
-            {'role': 'user', 'content': query}
-        ]
-        
-        # Input prompt to ChatGPT and start generating response in streaming format
-        self.response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_tokens=self.max_tokens,
-            stream=True
+            elif update_type == RemdisUpdateType.COMMIT:
+                # Final processing for the complete utterance
+                self.process_commit_utterance()
+
+                # Reset tracking variables
+                self.accumulated_text = ""
+                self.current_tokens = []
+                self.last_reaction_time = 0
+                self.last_call_time = 0
+                self.is_timeout_mode = False
+
+                # Cancel any pending timeout
+                self.cancel_timeout_check()
+
+            elif update_type == RemdisUpdateType.REVOKE:
+                # Reset tracking for revoked input
+                self.accumulated_text = ""
+                self.current_tokens = []
+                self.last_reaction_time = 0
+                self.last_call_time = 0
+                self.is_timeout_mode = False
+
+                # Cancel any pending timeout
+                self.cancel_timeout_check()
+
+    def process_for_reactions(self):
+        """Process the accumulated input for reactions (emotions, gestures, etc.)"""
+        current_time = time.time()
+
+        # Only process at intervals to avoid too many API calls
+        if (current_time - self.last_reaction_time) >= self.text_vap_interval:
+            # Only process if we have meaningful accumulated text
+            if len(self.accumulated_text.strip()) >= self.min_text_vap_threshold:
+                # Call LLM to get reactions
+                self.get_reactions_from_llm()
+                self.last_reaction_time = current_time
+
+    def get_reactions_from_llm(self):
+        """Call the LLM to get appropriate reactions based on the accumulated text"""
+        current_text = self.accumulated_text.strip()
+        if not current_text:
+            return
+
+        self.log(f"Call ChatGPT: query='{current_text}'")
+
+        # Call the LLM for reactions
+        llm = ResponseChatGPT(self.config, self.prompts)
+        t = threading.Thread(
+            target=llm.run,
+            args=(time.time(),
+                  current_text,
+                  [],  # No dialogue history needed for reactions
+                  None,
+                  self.llm_buffer)
         )
+        t.start()
 
-        # Variable to hold response from ChatGPT
-        current_completion_line = ""
-        nonverbal_backchannel = {}
+        # Wait for LLM response
+        t.join(timeout=2.0)  # Wait up to 2 seconds for response
 
-        # Sequentially parse ChatGPT's response
-        for chunk in self.response:
-            chunk_message = chunk.choices[0].delta
-            if hasattr(chunk_message, 'content'):
-                new_token = chunk_message.content
+        # Process LLM response
+        if not self.llm_buffer.empty():
+            try:
+                llm_response = self.llm_buffer.get(timeout=0.5)
+                self.process_llm_response(llm_response)
+            except queue.Empty:
+                self.log("No LLM response received for reactions")
 
-                if not new_token:
-                    continue
+    def process_llm_response(self, llm_response):
+        """Process the LLM response to extract emotions and actions"""
+        try:
+            if hasattr(llm_response, 'response'):
+                for part in llm_response.response:
+                    if isinstance(part, dict):
+                        # Extract emotion and action
+                        if 'expression' in part and part['expression'] != 'normal':
+                            new_emotion = part['expression']
+                            if new_emotion != self.current_emotion:
+                                self.current_emotion = new_emotion
+                                self.send_emotion_action()
 
-                current_completion_line += new_token
-                current_completion_line = current_completion_line.strip()
+                        if 'action' in part and part['action'] != 'wait':
+                            new_action = part['action']
+                            if new_action != self.current_action:
+                                self.current_action = new_action
+                                self.send_emotion_action()
+        except Exception as e:
+            self.log(f"Error processing LLM response: {e}")
 
-                if new_token != '\n':
-                    continue
+    def send_emotion_action(self):
+        """Send emotion and action to the emo_act exchange"""
+        emotion_action = {
+            'emotion': self.current_emotion,
+            'action': self.current_action
+        }
 
-                # Determine whether to give a backchannel or not
-                if current_completion_line.startswith('a'):
-                    label, content = self.parse_line_for_backchannel(current_completion_line)
-                    if label:
-                        self.log(f"***** BACKCHANNEL: {query=} {content=} *****")
-                        self.send_backchannel(asr_timestamp, {'bc': content})
+        snd_iu = self.createIU(emotion_action, 'emo_act', RemdisUpdateType.ADD)
+        snd_iu['data_type'] = 'emotion_action'
+        self.printIU(snd_iu)
+        self.publish(snd_iu, 'emo_act')
 
-                # Determine emotion to be expressed
-                elif current_completion_line.startswith('b'):
-                    label = self.parse_line_for_expression(current_completion_line)
-                    if label:
-                        nonverbal_backchannel['expression'] = MMDAgentEXLabel.id2expression[label]
+    def process_commit_utterance(self):
+        """Process the complete utterance when committed"""
+        # Prepare VAP event for final utterance
+        vap_event = 'ASR_COMMIT'
 
-                # Determine action to be expressed
-                elif current_completion_line.startswith('c'):
-                    label = self.parse_line_for_action(current_completion_line)
-                    if label:  
-                        nonverbal_backchannel['action'] = MMDAgentEXLabel.id2action[label]
-                    if nonverbal_backchannel:
-                        self.log(f"***** BACKCHANNEL: {query=} {nonverbal_backchannel=} *****")
-                        self.send_backchannel(asr_timestamp, nonverbal_backchannel)
-
-                # Determine whether to finalize the response or not
-                elif current_completion_line.startswith('d'):
-                    triggered = self.parse_line_for_text_vap(current_completion_line)
-                    if triggered:
-                        self.log(f"***** TEXT_VAP: {query=} {current_completion_line=} *****")
-                        self.send_system_take_turn()
-
-                current_completion_line = ""
-
-    # Send backchannel
-    def send_backchannel(self, asr_timestamp, content):
-        with self.backchannel_sent_lock:
-            triggered = False
-
-            if 'bc' in content:
-                if (self.last_verbal_backchannel_timestamp < asr_timestamp
-                    and self.is_listening
-                    and self.sent_verbal_backchannel_counter < self.max_verbal_backchannel_num):
-                    self.last_verbal_backchannel_timestamp = asr_timestamp
-                    self.sent_verbal_backchannel_counter += 1
-                    triggered = True
-                    exchange = 'bc'
-            elif 'expression' in content or 'action' in content:
-                if (self.last_nonverbal_backchannel_timestamp < asr_timestamp
-                    and self.is_listening
-                    and self.sent_nonverbal_backchannel_counter < self.max_nonverbal_backchannel_num):
-                    self.last_nonverbal_backchannel_timestamp = asr_timestamp
-                    self.sent_nonverbal_backchannel_counter += 1
-                    triggered = True
-                    exchange = 'emo_act'
-
-            if triggered:
-                snd_iu = self.createIU(content, exchange, RemdisUpdateType.ADD)
-                self.printIU(snd_iu)
-                self.publish(snd_iu, exchange)
-    
-    # Send system speech start
-    def send_system_take_turn(self):
-        snd_iu = self.createIU('SYSTEM_TAKE_TURN', 'str', RemdisUpdateType.COMMIT)
+        # Send a VAP event for the ASR complete
+        snd_iu = self.createIU(vap_event, 'vap', RemdisUpdateType.ADD)
         self.printIU(snd_iu)
         self.publish(snd_iu, 'vap')
-                            
-    # Callback function for message reception
+
+        # Reset emotion/action
+        self.current_emotion = "normal"
+        self.current_action = "wait"
+        self.send_emotion_action()
+
+    def schedule_timeout_check(self):
+        """Schedule a timeout check to auto-commit after silence"""
+        with self.timeout_thread_lock:
+            # Cancel any existing timeout thread
+            if self.active_timeout_thread and self.active_timeout_thread.is_alive():
+                self.is_timeout_mode = False  # Signal the thread to exit
+
+            # Create a new timeout thread
+            self.is_timeout_mode = True
+            self.active_timeout_thread = threading.Thread(
+                target=self.timeout_monitor,
+                daemon=True
+            )
+            self.active_timeout_thread.start()
+
+    def cancel_timeout_check(self):
+        """Cancel the timeout check"""
+        with self.timeout_thread_lock:
+            self.is_timeout_mode = False
+
+    def timeout_monitor(self):
+        """Monitor for silence and trigger a commit if timeout reached"""
+        # Record the time we started monitoring
+        start_time = time.time()
+        last_text = self.accumulated_text
+
+        while self.is_timeout_mode:
+            current_time = time.time()
+            elapsed = current_time - self.last_asr_timestamp
+
+            # If input has stopped changing for the timeout period, and we have text
+            if (elapsed >= self.max_silence_time and
+                self.accumulated_text.strip() and
+                self.accumulated_text == last_text):
+
+                self.log(f"Timeout detected after {elapsed:.2f}s - Auto committing: '{self.accumulated_text.strip()}'")
+
+                # Create a COMMIT message
+                commit_iu = self.createIU(self.accumulated_text.strip(), 'asr', RemdisUpdateType.COMMIT)
+                commit_iu['timestamp'] = current_time
+
+                # Send it to our own input queue for processing
+                self.input_iu_buffer.put(commit_iu)
+
+                # End this timeout thread
+                break
+
+            # If the text has changed, update our reference and reset the timer
+            if self.accumulated_text != last_text:
+                last_text = self.accumulated_text
+                self.last_asr_timestamp = current_time
+
+            # Check every 100ms to avoid high CPU usage
+            time.sleep(0.1)
+
     def callback_asr(self, ch, method, properties, in_msg):
+        """Callback for ASR messages"""
         in_msg = self.parse_msg(in_msg)
+        self.printIU(in_msg)
+
+        # Put the message in the input queue for processing
         self.input_iu_buffer.put(in_msg)
 
-    # Output debug logs
     def log(self, *args, **kwargs):
+        """Logging function with timestamp"""
         print(f"[{time.time():.5f}]", *args, flush=True, **kwargs)
-
 
 def main():
     text_vap = TextVAP()
     text_vap.run()
-
 
 if __name__ == '__main__':
     main()
