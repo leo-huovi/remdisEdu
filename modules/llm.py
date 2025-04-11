@@ -56,7 +56,7 @@ class ResponseGenerator:
             max_tokens=self.max_tokens,
             stream=True
         )
-    
+
     # Called in the send_response function of Dialogue, sequentially returns fragments of responses
     def __next__(self):
         # Parse arguments (e.g., '1_joy|6_nod') to obtain expression and action
@@ -90,7 +90,7 @@ class ResponseGenerator:
 
                 if not new_token:
                     continue
-                
+
                 # Add fragments of the response
                 if new_token != "/":
                     self.response_fragment += new_token
@@ -105,7 +105,7 @@ class ResponseGenerator:
                 if len(splits) == 2 or new_token == "/":
                     if splits[0]:
                         return {"phrase": splits[0]}
-                
+
                 # Return remaining fragment if the end of the response has come
                 if new_token == "/":
                     if self.response_fragment:
@@ -117,7 +117,7 @@ class ResponseGenerator:
                     return _parse_split(self.response_fragment)
 
         raise StopIteration
-    
+
     # Make ResponseGenerator an iterator
     def __iter__(self):
         return self
@@ -140,7 +140,7 @@ class ResponseChatGPT():
         self.response = ''
         self.last_asr_iu_id = ''
         self.asr_time = 0.0
-    
+
     # Start the call to ChatGPT
     def run(self, asr_timestamp, user_utterance, dialogue_history, last_asr_iu_id, parent_llm_buffer):
         self.user_utterance = user_utterance
