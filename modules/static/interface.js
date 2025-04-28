@@ -1,5 +1,6 @@
 // interface.js
-// Added microphone volume visualization, system speaking lockout, and robot character implementation
+// Added microphone volume visualization, system speaking lockout, robot character implementation,
+// and enlarged background display for hervanta.png with proper positioning
 
 document.addEventListener("DOMContentLoaded", function() {
     // Define socket INSIDE DOMContentLoaded
@@ -70,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function() {
         'speaking': 'robot1.png'
     };
 
-    // Ensure emotion display uses image
+    // Ensure emotion display uses image correctly positioned
     if (emotionDisplay) {
         // Create the img element if it doesn't exist
         if (!emotionDisplay.querySelector('img')) {
@@ -78,6 +79,7 @@ document.addEventListener("DOMContentLoaded", function() {
             robotImg.src = `static/character/robot1.png`; // Default robot
             robotImg.alt = "Robot character";
             emotionDisplay.appendChild(robotImg);
+            // The bottom positioning is handled via CSS
         }
     }
 

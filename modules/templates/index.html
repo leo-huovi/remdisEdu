@@ -1,82 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dialogue Interface</title>
-  <link rel="stylesheet" href="static/styles.css">
-  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-  <script>
-    // Optional: Define timeout configuration variable here
-    const COMMIT_TIMEOUT_MS_CONFIG = 3000;
-  </script>
-  <script src="static/interface.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversational Robot Interface</title>
+    <link rel="stylesheet" href="static/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
+    <script>
+        // Configuration value that can be adjusted from server
+        const COMMIT_TIMEOUT_MS_CONFIG = 3000; // Default timeout for committing text
+    </script>
+    <script src="static/interface.js"></script>
 </head>
 <body>
-  <div id="main-container">
-    <div id="connection-status">Disconnected</div>
+    <div id="main-container">
+        <div id="connection-status">Connecting...</div>
 
-    <!-- New Backchannel Bubble positioned above the robot -->
-    <div id="thought-bubble-backchannel">
-      <div id="thought-bubble-backchannel-content"></div>
-    </div>
-
-    <!-- Primary Thought Bubble (for currently heard text) -->
-    <div id="thought-bubble">
-      <div id="thought-bubble-header">Currently hearing:</div>
-      <div id="thought-bubble-content"></div> <!-- Displays current_text -->
-    </div>
-
-    <!-- Second Thought Bubble for Central Concept -->
-    <div id="thought-bubble-central">
-      <div id="thought-bubble-central-header">Central Concept:</div>
-      <div id="thought-bubble-central-content"></div> <!-- This will display the concept -->
-    </div>
-
-    <!-- Volume meter display - vertical closer to main content -->
-    <div id="volume-meter">
-      <div id="volume-meter-label">LISTENING</div>
-      <div id="volume-meter-container">
-        <div id="volume-bar"></div>
-      </div>
-    </div>
-
-    <div id="avatar-container">
-      <div id="emotion-display">
-        <!-- Robot image will be inserted here by JS -->
-      </div>
-      <div id="avatar-info">
-        <div id="state-text">idle</div> <!-- Displays action -->
-        <div id="progress-container">
-          <div id="progress-bar"></div>
+        <!-- Volume meter (left side) -->
+        <div id="volume-meter">
+            <div id="volume-meter-label">LISTENING</div>
+            <div id="volume-meter-container">
+                <div id="volume-bar" class="volume-low"></div>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <div id="transcript-container">
-      <div class="transcript-section">
-        <div class="transcript-label">System:</div>
-        <div class="transcript-content" id="system-transcript"></div>
-      </div>
-      <div class="transcript-section">
-        <div class="transcript-label">User:</div>
-        <div class="transcript-content" id="user-transcript"></div>
-      </div>
-    </div>
+        <!-- Avatar section with background image and clipping container -->
+        <div id="avatar-container">
+            <div id="emotion-display">
+                <img src="static/character/robot1.png" alt="Robot character">
+            </div>
 
-    <!-- Hidden ASR display (kept for potential debug, but primary display is thought bubble) -->
-    <div id="asr-display" style="display:none;">
-      <div class="asr-label">Speech Recognition:</div>
-      <div id="asr-text"></div>
-    </div>
+            <!-- Backchannel bubble (above robot) -->
+            <div id="thought-bubble-backchannel">
+                <div id="thought-bubble-backchannel-content"></div>
+            </div>
 
-    <div id="input-area">
-      <input type="text" id="asr-input" placeholder="Type your message here..." autocomplete="off">
-      <div class="input-status">
-        <div id="status-indicator" class="status-idle"></div>
-        <span id="typing-status">Idle</span>
-      </div>
+            <div id="avatar-info">
+                <div id="state-text">idle</div>
+                <div id="progress-container">
+                    <div id="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right-side thought bubble for current text -->
+        <div id="thought-bubble">
+            <div id="thought-bubble-header">Current Text</div>
+            <div id="thought-bubble-content"></div>
+        </div>
+
+        <!-- Left-side thought bubble for central concept -->
+        <div id="thought-bubble-central">
+            <div id="thought-bubble-central-header">Topic</div>
+            <div id="thought-bubble-central-content"></div>
+        </div>
+
+        <!-- Transcript area -->
+        <div id="transcript-container">
+            <div class="transcript-section">
+                <div class="transcript-label">System</div>
+                <div class="transcript-content" id="system-transcript"></div>
+            </div>
+            <div class="transcript-section">
+                <div class="transcript-label">User</div>
+                <div class="transcript-content" id="user-transcript"></div>
+            </div>
+        </div>
+
+        <!-- Input area -->
+        <div id="input-area">
+            <input type="text" id="asr-input" placeholder="Type your message here...">
+            <div class="input-status">
+                <div id="status-indicator" class="status-idle"></div>
+                <div id="typing-status">Idle</div>
+            </div>
+        </div>
     </div>
-  </div>
 </body>
 </html>

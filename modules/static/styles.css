@@ -11,17 +11,19 @@ body {
   align-items: center;
 }
 
+/* Increase the main container size to accommodate larger display */
+
 #main-container {
   width: 100%;
-  max-width: 800px; /* Increased from 600px */
+  max-width: 900px; /* Reduced from 1000px */
   height: 100vh;
-  max-height: 900px; /* Increased from 800px */
+  max-height: 900px; /* Reduced from 1000px */
   display: flex;
   flex-direction: column;
-  padding: 30px; /* Increased from 20px */
+  padding: 30px;
   box-sizing: border-box;
   position: relative;
-  background-color: #574a6b; /* Darker pastel purple for inner box */
+  background-color: #574a6b;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
@@ -29,8 +31,8 @@ body {
 /* Connection status */
 #connection-status {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 10px;
+  right: 10px;
   font-size: 0.8em;
   padding: 5px 10px;
   border-radius: 10px;
@@ -45,42 +47,57 @@ body {
 }
 
 /* Avatar styling */
+
 #avatar-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-top: 120px; /* Increased from 80px */
-  margin-bottom: 40px; /* Increased from 20px */
-  height: 250px; /* Increased from 230px */
-  position: relative; /* For positioning the backchannel bubble */
+  margin-top: 60px; /* Increased from 50px to give more space at top */
+  margin-bottom: 20px;
+  height: 400px; /* Reduced from 450px */
+  position: relative;
+  width: 100%;
 }
 
+
 #emotion-display {
-  width: 200px; /* Increased from 180px */
-  height: 200px; /* Increased from 180px */
+  width: 700px; /* Reduced from 800px */
+  height: 400px; /* Reduced from 450px */
   display: flex;
   justify-content: center;
   align-items: center;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 15px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  margin-bottom: 20px; /* Increased from 10px */
+  margin-bottom: 20px;
   transition: transform 0.3s ease;
   overflow: hidden;
-  position: relative; /* Keep position fixed */
+  position: relative;
+  background-image: url('hervanta.png');
+  background-size: cover;
+  background-position: center;
 }
 
+
+/* Fix robot positioning and animation */
 #emotion-display img {
-  width: 100%;
-  height: 100%;
+  width: auto;
+  height: 250px;
   object-fit: contain;
   transition: all 0.3s ease;
+  position: absolute;
+  bottom: 15px; /* Position 5px from bottom as requested */
+  left: 50%;
+  /* The translateX ensures the robot stays centered horizontally even during animation */
+  transform: translateX(-50%);
+  /* Prevent transform property from being overridden during animation */
+  transform-origin: bottom center;
 }
 
 #avatar-info {
   text-align: center;
-  margin-top: 20px; /* Increased from 10px */
+  margin-top: 10px;
 }
 
 #state-text {
@@ -90,11 +107,11 @@ body {
 }
 
 #progress-container {
-  width: 180px; /* Increased from 150px */
-  height: 6px; /* Slightly increased from 5px */
+  width: 150px;
+  height: 5px;
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: 5px;
-  margin: 15px auto 0; /* Increased from 10px */
+  margin: 10px auto 0;
   display: none;
 }
 
@@ -110,19 +127,20 @@ body {
 #volume-meter {
   position: absolute;
   top: 50%;
-  left: 30px; /* Increased from 20px */
+  left: 15px; /* Adjusted position */
   transform: translateY(-50%);
-  height: 400px; /* Increased from 350px */
-  width: 45px; /* Increased from 40px */
+  height: 400px;
+  width: 45px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px; /* Increased from 15px */
+  gap: 20px;
   z-index: 90;
 }
 
+
 #volume-meter-label {
-  font-size: 1.1em; /* Increased from 1em */
+  font-size: 1em;
   color: #ccc0e8;
   font-weight: bold;
   writing-mode: vertical-lr;
@@ -132,8 +150,8 @@ body {
 }
 
 #volume-meter-container {
-  width: 40px; /* Increased from 35px */
-  height: 350px; /* Increased from 300px */
+  width: 35px;
+  height: 300px;
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   overflow: hidden;
@@ -156,7 +174,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 24px; /* Increased from 20px */
+  font-size: 20px;
   color: rgba(255, 0, 0, 0.8);
   z-index: 5;
 }
@@ -196,33 +214,33 @@ body {
 #transcript-container {
   display: flex;
   flex-direction: column;
-  gap: 15px; /* Increased from 10px */
-  margin-bottom: 30px; /* Increased from 20px */
+  gap: 15px;
+  margin-bottom: 30px;
   overflow-y: auto;
-  height: 22%; /* Increased slightly from 20% */
-  margin-left: 80px; /* Increased from 60px to accommodate wider volume meter */
-  margin-right: 20px; /* Added right margin for balance */
+  height: 22%;
+  margin-left: 80px;
+  margin-right: 20px;
+  /* No change needed here but ensure it's properly positioned after the enlarged display */
 }
-
 .transcript-section {
   display: flex;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px; /* Increased from 8px */
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .transcript-label {
   background-color: rgba(255, 255, 255, 0.1);
-  padding: 12px; /* Increased from 10px */
-  width: 90px; /* Increased from 80px */
+  padding: 10px;
+  width: 80px;
   text-align: right;
   font-weight: bold;
 }
 
 .transcript-content {
   flex: 1;
-  padding: 12px; /* Increased from 10px */
-  max-height: 70px; /* Increased from 60px */
+  padding: 10px;
+  max-height: 60px;
   overflow-y: auto;
   white-space: pre-wrap;
 }
@@ -230,7 +248,7 @@ body {
 .asr-label {
   font-size: 0.9em;
   color: #ccc0e8;
-  margin-bottom: 8px; /* Increased from 5px */
+  margin-bottom: 5px;
 }
 
 #asr-text {
@@ -241,52 +259,53 @@ body {
   opacity: 0.6;
 }
 
-/* Thought bubble styling - REPOSITIONED and ENLARGED */
+/* Thought bubble styling */
 #thought-bubble {
   position: absolute;
-  top: 60px; /* Increased from 40px */
-  right: 100px; /* Increased by 50% from 50px */
+  top: 140px; /* Increased from 60px to move lower */
+  right: 120px;
   background-color: rgba(255, 255, 255, 0.95);
   color: #333;
-  padding: 18px; /* Increased from 15px */
-  border-radius: 24px; /* Increased from 20px */
-  max-width: 280px; /* Increased from 250px */
-  min-width: 200px; /* Increased from 180px */
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Increased shadow */
+  padding: 18px;
+  border-radius: 24px;
+  max-width: 280px;
+  min-width: 200px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
   z-index: 100;
 }
 
+
 #thought-bubble.active {
   opacity: 0.95;
 }
 
 #thought-bubble-header {
-  font-size: 1em; /* Increased from 0.9em */
+  font-size: 0.9em;
   color: #9e9eff;
-  margin-bottom: 8px; /* Increased from 5px */
+  margin-bottom: 5px;
   font-weight: bold;
 }
 
 #thought-bubble-content {
-  font-size: 1em; /* Increased from 0.9em */
+  font-size: 0.9em;
   overflow-wrap: break-word;
 }
 
-/* Second Thought Bubble for Central Concept - moved to left of robot and REPOSITIONED */
+/* Second Thought Bubble for Central Concept - moved to left of robot */
 #thought-bubble-central {
   position: absolute;
-  top: 60px; /* Increased from 40px */
-  left: 100px; /* Increased by 50% from 50px */
+  top: 140px; /* Increased from 60px to move lower */
+  left: 120px;
   background-color: rgba(255, 255, 255, 0.95);
   color: #333;
-  padding: 18px; /* Increased from 15px */
-  border-radius: 24px; /* Increased from 20px */
-  max-width: 280px; /* Increased from 250px */
-  min-width: 200px; /* Increased from 180px */
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Increased shadow */
+  padding: 18px;
+  border-radius: 24px;
+  max-width: 280px;
+  min-width: 200px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -298,42 +317,44 @@ body {
 }
 
 #thought-bubble-central-header {
-  font-size: 1em; /* Increased from 0.9em */
+  font-size: 0.9em;
   color: #9e9eff;
-  margin-bottom: 8px; /* Increased from 5px */
+  margin-bottom: 5px;
   font-weight: bold;
 }
 
 #thought-bubble-central-content {
-  font-size: 1em; /* Increased from 0.9em */
+  font-size: 0.9em;
   overflow-wrap: break-word;
 }
 
 /* Backchannel bubble styling - positioned above the robot */
 #thought-bubble-backchannel {
   position: absolute;
-  top: 80px; /* Moved higher up from 110px */
+  top: 120px; /* Increased from 100px to move lower */
   left: 50%;
   transform: translateX(-50%);
   background-color: rgba(255, 255, 255, 0.95);
   color: #333;
-  padding: 15px 22px; /* Increased from 12px 18px */
-  border-radius: 24px; /* Increased from 20px */
-  max-width: 220px; /* Increased from 200px */
-  min-width: 120px; /* Increased from 100px */
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Increased shadow */
+  padding: 15px 22px;
+  border-radius: 24px;
+  max-width: 220px;
+  min-width: 120px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
-  z-index: 110; /* Higher than other bubbles */
+  z-index: 110;
 }
+
+
 
 #thought-bubble-backchannel.active {
   opacity: 0.95;
 }
 
 #thought-bubble-backchannel-content {
-  font-size: 1.2em; /* Increased from 1.1em */
+  font-size: 1.1em;
   font-weight: bold;
   overflow-wrap: break-word;
   text-align: center;
@@ -343,36 +364,36 @@ body {
 #thought-bubble-backchannel::after {
   content: '';
   position: absolute;
-  bottom: -12px; /* Increased from -10px */
+  bottom: -10px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 12px solid transparent; /* Increased from 10px */
-  border-right: 12px solid transparent; /* Increased from 10px */
-  border-top: 12px solid rgba(255, 255, 255, 0.95); /* Increased from 10px */
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid rgba(255, 255, 255, 0.95);
 }
 
 /* Input area */
 #input-area {
   margin-top: auto;
-  padding: 20px; /* Increased from 15px */
+  padding: 20px;
   background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 10px; /* Increased from 8px */
+  border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  margin-left: 80px; /* Increased from 60px */
-  margin-right: 20px; /* Added right margin for balance */
-  margin-bottom: 10px; /* Added bottom margin */
+  margin-left: 80px;
+  margin-right: 20px;
+  margin-bottom: 10px;
 }
 
 #asr-input {
   width: 100%;
-  padding: 15px; /* Increased from 12px */
+  padding: 12px;
   border: none;
-  border-radius: 8px; /* Increased from 6px */
+  border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.1);
   color: #e0e0e0;
-  font-size: 1.1em; /* Increased from 1em */
+  font-size: 1em;
   outline: none;
   transition: background-color 0.3s ease, border 0.3s ease;
 }
@@ -395,17 +416,17 @@ body {
 .input-status {
   display: flex;
   align-items: center;
-  margin-top: 10px; /* Increased from 8px */
-  font-size: 0.9em; /* Increased from 0.8em */
+  margin-top: 8px;
+  font-size: 0.8em;
   color: #ccc0e8;
 }
 
 #status-indicator {
-  width: 14px; /* Increased from 12px */
-  height: 14px; /* Increased from 12px */
+  width: 12px;
+  height: 12px;
   background-color: #ccc;
   border-radius: 50%;
-  margin-right: 10px; /* Increased from 8px */
+  margin-right: 8px;
 }
 
 .status-idle {
@@ -444,30 +465,31 @@ body.system-speaking #emotion-display img {
 }
 
 @keyframes thinking {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.05); }
+  100% { transform: translateX(-50%) scale(1); }
 }
 
 @keyframes speaking {
-  0% { transform: translateY(0); }
-  25% { transform: translateY(3px); }
-  75% { transform: translateY(-3px); }
-  100% { transform: translateY(0); }
+  0% { transform: translateX(-50%) translateY(0); }
+  25% { transform: translateX(-50%) translateY(-3px); }
+  75% { transform: translateX(-50%) translateY(3px); }
+  100% { transform: translateX(-50%) translateY(0); }
 }
+
 
 /* Add more visible indicator when speaking */
 body.system-speaking #avatar-container::after {
   content: "Speaking...";
   position: absolute;
-  bottom: -25px; /* Increased from -20px */
+  bottom: -20px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 16px; /* Increased from 14px */
+  font-size: 14px;
   color: #ffcc80;
   background-color: rgba(0, 0, 0, 0.2);
-  padding: 5px 12px; /* Increased from 3px 10px */
-  border-radius: 12px; /* Increased from 10px */
+  padding: 3px 10px;
+  border-radius: 10px;
   animation: pulse 1.5s infinite;
 }
 
